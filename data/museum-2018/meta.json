@@ -1,0 +1,120 @@
+{
+  "dataset": "IMLS Museum Universe Data File 2018",
+  "year": 2018,
+  "built_at": "2026-07-10T23:56:48.236282+00:00",
+  "record_count": 30175,
+  "source_files": {
+    "MuseumFile2018_File1_Nulls.csv": 7431,
+    "MuseumFile2018_File2_Nulls.csv": 7961,
+    "MuseumFile2018_File3_Nulls.csv": 14785
+  },
+  "states": {
+    "CA": 2409,
+    "NY": 2020,
+    "TX": 1682,
+    "PA": 1495,
+    "OH": 1243,
+    "IL": 1198,
+    "FL": 1045,
+    "MI": 950,
+    "MA": 947,
+    "VA": 852,
+    "WI": 820,
+    "NC": 721,
+    "NJ": 708,
+    "MO": 697,
+    "IN": 637,
+    "MN": 633,
+    "WA": 630,
+    "GA": 625,
+    "IA": 609,
+    "CO": 588,
+    "MD": 580,
+    "TN": 509,
+    "ME": 502,
+    "OR": 498,
+    "KS": 498,
+    "CT": 493,
+    "OK": 456,
+    "KY": 431,
+    "AL": 423,
+    "AZ": 406,
+    "SC": 363,
+    "LA": 361,
+    "NH": 344,
+    "NE": 329,
+    "AR": 287,
+    "NM": 275,
+    "VT": 269,
+    "ND": 254,
+    "MT": 248,
+    "WV": 237,
+    "MS": 234,
+    "SD": 215,
+    "ID": 201,
+    "DC": 171,
+    "WY": 169,
+    "RI": 168,
+    "HI": 162,
+    "NV": 158,
+    "UT": 155,
+    "AK": 152,
+    "DE": 118
+  },
+  "disciplines": {
+    "HSC": {
+      "count": 14785,
+      "label": "History / science / children's"
+    },
+    "GMU": {
+      "count": 7961,
+      "label": "General museum"
+    },
+    "ART": {
+      "count": 2620,
+      "label": "Art museum"
+    },
+    "HST": {
+      "count": 1776,
+      "label": "HST"
+    },
+    "BOT": {
+      "count": 1028,
+      "label": "Botanical garden / arboretum"
+    },
+    "SCI": {
+      "count": 833,
+      "label": "Science / technology center"
+    },
+    "ZAW": {
+      "count": 465,
+      "label": "ZAW"
+    },
+    "CMU": {
+      "count": 438,
+      "label": "CMU"
+    },
+    "NAT": {
+      "count": 269,
+      "label": "Natural history / nature center"
+    }
+  },
+  "discipline_labels": {
+    "ART": "Art museum",
+    "GMU": "General museum",
+    "HSC": "History / science / children's",
+    "NAT": "Natural history / nature center",
+    "BOT": "Botanical garden / arboretum",
+    "ZOO": "Zoo / aquarium",
+    "SCI": "Science / technology center",
+    "HIS": "History museum / historic site",
+    "CHI": "Children's museum",
+    "HAI": "Historic house"
+  },
+  "search_ui": "museum-db-2018/index.html",
+  "files": {
+    "slim_json": "data/museum-2018/museums.json",
+    "by_mid_json": "data/museum-2018/museums-by-mid.json",
+    "sqlite": "data/museum-2018/museums.sqlite"
+  }
+}

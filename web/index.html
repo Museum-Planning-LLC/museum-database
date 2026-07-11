@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <title>US Museum Database 2018 · Museum Planning</title>
+  <meta name="description" content="Searchable database of 30,000+ US museums from the 2018 IMLS Museum Universe Data File.">
+  <style>
+    :root {
+      --bg: #f7f5f1;
+      --panel: #ffffff;
+      --line: rgba(26, 58, 92, 0.12);
+      --text: #1a3a5c;
+      --muted: #5c6f82;
+      --accent: #2b6cb0;
+      --accent-soft: #e8f1fb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .wrap {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 28px 20px 80px;
+    }
+    .eyebrow {
+      font: 600 11px/1.2 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(1.8rem, 4vw, 2.5rem);
+      font-weight: 400;
+      line-height: 1.1;
+    }
+    .sub {
+      color: var(--muted);
+      margin-bottom: 22px;
+      font-size: 1rem;
+      line-height: 1.6;
+      max-width: 72ch;
+    }
+    .controls {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    input, select, button {
+      font: 14px/1.2 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    input, select {
+      width: 100%;
+      background: var(--panel);
+      color: var(--text);
+      border: 1px solid var(--line);
+      padding: 11px 12px;
+      border-radius: 8px;
+    }
+    .meta {
+      color: var(--muted);
+      font: 13px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin-bottom: 12px;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.5fr) minmax(280px, 1fr);
+      gap: 16px;
+      align-items: start;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    th, td {
+      text-align: left;
+      border-bottom: 1px solid var(--line);
+      padding: 10px 12px;
+      vertical-align: top;
+      font: 13px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    th {
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      user-select: none;
+      background: #faf8f5;
+    }
+    tbody tr {
+      cursor: pointer;
+    }
+    tbody tr:hover,
+    tbody tr.active {
+      background: var(--accent-soft);
+    }
+    tr:last-child td { border-bottom: none; }
+    .pill {
+      border: 1px solid var(--line);
+      padding: 2px 7px;
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: 11px;
+      display: inline-block;
+    }
+    .detail {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 16px;
+      position: sticky;
+      top: 16px;
+      min-height: 240px;
+    }
+    .detail h2 {
+      margin: 0 0 8px;
+      font-size: 1.2rem;
+      font-weight: 400;
+      line-height: 1.25;
+    }
+    .detail .loc {
+      color: var(--muted);
+      font: 13px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin-bottom: 14px;
+    }
+    .detail dl {
+      margin: 0;
+      display: grid;
+      gap: 8px;
+    }
+    .detail dt {
+      font: 600 10px/1.2 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .detail dd {
+      margin: 2px 0 0;
+      font: 13px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      word-break: break-word;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .empty {
+      color: var(--muted);
+      font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    .pager {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: flex-end;
+      margin-top: 10px;
+      font: 13px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--muted);
+    }
+    .pager button {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      color: var(--text);
+      border-radius: 8px;
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+    .pager button:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+    @media (max-width: 980px) {
+      .controls { grid-template-columns: 1fr 1fr; }
+      .layout { grid-template-columns: 1fr; }
+      .detail { position: static; }
+      th:nth-child(4), td:nth-child(4) { display: none; }
+    }
+    @media (max-width: 700px) {
+      .controls { grid-template-columns: 1fr; }
+      th:nth-child(3), td:nth-child(3) { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <p class="eyebrow">Museum Planning · Open data</p>
+    <h1>US Museum Database 2018</h1>
+    <p class="sub">
+      Searchable index of the 2018 IMLS Museum Universe Data File —
+      roughly 30,000 US museums with location, discipline, contact, and IRS snapshot fields.
+    </p>
+
+    <div class="controls">
+      <input id="q" type="search" placeholder="Search name, city, state, MID, phone, web, EIN…" autofocus>
+      <select id="stateFilter"><option value="">All states</option></select>
+      <select id="disciplineFilter"><option value="">All disciplines</option></select>
+      <select id="sortBy">
+        <option value="name_asc">Name: A–Z</option>
+        <option value="name_desc">Name: Z–A</option>
+        <option value="state_asc">State: A–Z</option>
+        <option value="revenue_desc">Revenue: high to low</option>
+      </select>
+    </div>
+
+    <div class="meta" id="meta">Loading museum database…</div>
+
+    <div class="layout">
+      <div>
+        <table>
+          <thead>
+            <tr>
+              <th data-sort="name">Museum</th>
+              <th data-sort="city">City</th>
+              <th data-sort="state">State</th>
+              <th data-sort="discipline">Discipline</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+        <div class="pager">
+          <button id="prevPage" type="button">Previous</button>
+          <span id="pageLabel">Page 1</span>
+          <button id="nextPage" type="button">Next</button>
+        </div>
+      </div>
+
+      <aside class="detail" id="detail">
+        <p class="empty">Select a museum to view full record fields.</p>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    const DATA_URL = "../data/museum-2018/museums.json";
+    const FULL_URL = "../data/museum-2018/museums-by-mid.json";
+    const PAGE_SIZE = 50;
+
+    const qEl = document.getElementById("q");
+    const stateEl = document.getElementById("stateFilter");
+    const disciplineEl = document.getElementById("disciplineFilter");
+    const sortEl = document.getElementById("sortBy");
+    const rowsEl = document.getElementById("rows");
+    const metaEl = document.getElementById("meta");
+    const detailEl = document.getElementById("detail");
+    const prevPageEl = document.getElementById("prevPage");
+    const nextPageEl = document.getElementById("nextPage");
+    const pageLabelEl = document.getElementById("pageLabel");
+
+    let allMuseums = [];
+    let fullByMid = null;
+    let filtered = [];
+    let page = 0;
+    let activeMid = "";
+
+    function safe(v) { return (v || "").toString(); }
+    function lower(v) { return safe(v).toLowerCase(); }
+    function num(v) {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : 0;
+    }
+
+    function fillSelect(select, values, label) {
+      const unique = [...new Set(values.filter(Boolean))].sort((a, b) => a.localeCompare(b));
+      select.innerHTML = `<option value="">All ${label}</option>`;
+      for (const value of unique) {
+        const opt = document.createElement("option");
+        opt.value = value;
+        opt.textContent = value;
+        select.appendChild(opt);
+      }
+    }
+
+    function compareRecords(a, b, mode) {
+      if (mode === "name_desc") return lower(b.name).localeCompare(lower(a.name));
+      if (mode === "state_asc") {
+        const stateCmp = lower(a.state).localeCompare(lower(b.state));
+        return stateCmp || lower(a.name).localeCompare(lower(b.name));
+      }
+      if (mode === "revenue_desc") {
+        return num(b.revenue) - num(a.revenue) || lower(a.name).localeCompare(lower(b.name));
+      }
+      return lower(a.name).localeCompare(lower(b.name));
+    }
+
+    function applyFilters() {
+      const q = lower(qEl.value.trim());
+      const state = stateEl.value;
+      const discipline = disciplineEl.value;
+      const sortMode = sortEl.value;
+
+      filtered = allMuseums.filter((museum) => {
+        if (state && museum.state !== state) return false;
+        if (discipline && museum.discipline !== discipline) return false;
+        if (!q) return true;
+        return museum.search.includes(q);
+      });
+
+      filtered.sort((a, b) => compareRecords(a, b, sortMode));
+      page = 0;
+      render();
+    }
+
+    function renderRows() {
+      rowsEl.innerHTML = "";
+      const start = page * PAGE_SIZE;
+      const slice = filtered.slice(start, start + PAGE_SIZE);
+
+      for (const museum of slice) {
+        const tr = document.createElement("tr");
+        if (museum.mid === activeMid) tr.classList.add("active");
+        tr.innerHTML = `
+          <td>${escapeHtml(museum.name || museum.legal || museum.mid)}</td>
+          <td>${escapeHtml(museum.city)}</td>
+          <td>${escapeHtml(museum.state)}</td>
+          <td><span class="pill">${escapeHtml(museum.discipline_label || museum.discipline || "—")}</span></td>
+        `;
+        tr.addEventListener("click", () => showDetail(museum.mid, tr));
+        rowsEl.appendChild(tr);
+      }
+
+      const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+      pageLabelEl.textContent = `Page ${page + 1} of ${totalPages}`;
+      prevPageEl.disabled = page === 0;
+      nextPageEl.disabled = page >= totalPages - 1;
+    }
+
+    function renderMeta() {
+      metaEl.textContent = `${filtered.length.toLocaleString()} museums shown · ${allMuseums.length.toLocaleString()} total in 2018 IMLS extract`;
+    }
+
+    function render() {
+      renderMeta();
+      renderRows();
+      if (activeMid && !filtered.some((museum) => museum.mid === activeMid)) {
+        activeMid = "";
+        detailEl.innerHTML = `<p class="empty">Select a museum to view full record fields.</p>`;
+      }
+    }
+
+    function escapeHtml(value) {
+      return safe(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+    }
+
+    function formatMoney(value) {
+      const n = num(value);
+      if (!n) return "—";
+      return "$" + n.toLocaleString();
+    }
+
+    function formatUrl(value) {
+      const url = safe(value).trim();
+      if (!url) return "—";
+      const href = /^https?:\/\//i.test(url) ? url : "https://" + url.replace(/^\/+/, "");
+      return `<a href="${escapeHtml(href)}" target="_blank" rel="noopener">${escapeHtml(url)}</a>`;
+    }
+
+    async function ensureFullRecord(mid) {
+      if (!fullByMid) {
+        const response = await fetch(FULL_URL);
+        fullByMid = await response.json();
+      }
+      return fullByMid[mid] || null;
+    }
+
+    async function showDetail(mid, rowEl) {
+      activeMid = mid;
+      for (const row of rowsEl.querySelectorAll("tr")) row.classList.remove("active");
+      if (rowEl) rowEl.classList.add("active");
+
+      detailEl.innerHTML = `<p class="empty">Loading record ${escapeHtml(mid)}…</p>`;
+      const record = await ensureFullRecord(mid);
+      if (!record) {
+        detailEl.innerHTML = `<p class="empty">No full record found for MID ${escapeHtml(mid)}.</p>`;
+        return;
+      }
+
+      const title = record.COMMONNAME || record.LEGALNAME || record.MID;
+      const address = [record.ADSTREET, record.ADCITY, record.ADSTATE, record.ADZIP].filter(Boolean).join(", ");
+
+      detailEl.innerHTML = `
+        <h2>${escapeHtml(title)}</h2>
+        <div class="loc">${escapeHtml(address || "Address unavailable")}</div>
+        <dl>
+          <dt>MID</dt><dd>${escapeHtml(record.MID)}</dd>
+          <dt>Discipline</dt><dd>${escapeHtml(record.DISCIPLINE || "—")}</dd>
+          <dt>Legal name</dt><dd>${escapeHtml(record.LEGALNAME || "—")}</dd>
+          <dt>Phone</dt><dd>${escapeHtml(record.PHONE || "—")}</dd>
+          <dt>Website</dt><dd>${formatUrl(record.WEBURL)}</dd>
+          <dt>EIN</dt><dd>${escapeHtml(record.EIN || "—")}</dd>
+          <dt>2015 revenue</dt><dd>${formatMoney(record.REVENUE15)}</dd>
+          <dt>2015 income</dt><dd>${formatMoney(record.INCOME15)}</dd>
+          <dt>Coordinates</dt><dd>${escapeHtml(record.LATITUDE || "—")}, ${escapeHtml(record.LONGITUDE || "—")}</dd>
+          <dt>IRS name (2015)</dt><dd>${escapeHtml(record.IRS_NAME15 || "—")}</dd>
+          <dt>Institution</dt><dd>${escapeHtml(record.INSTNAME || "—")}</dd>
+        </dl>
+      `;
+    }
+
+    async function init() {
+      const [slimResponse, metaResponse] = await Promise.all([
+        fetch(DATA_URL),
+        fetch("../data/museum-2018/meta.json"),
+      ]);
+
+      allMuseums = await slimResponse.json();
+      const meta = await metaResponse.json();
+
+      fillSelect(stateEl, allMuseums.map((museum) => museum.state), "states");
+      fillSelect(disciplineEl, allMuseums.map((museum) => museum.discipline), "disciplines");
+
+      metaEl.textContent = `${allMuseums.length.toLocaleString()} museums loaded · built ${meta.built_at || ""}`;
+
+      qEl.addEventListener("input", applyFilters);
+      stateEl.addEventListener("change", applyFilters);
+      disciplineEl.addEventListener("change", applyFilters);
+      sortEl.addEventListener("change", applyFilters);
+      prevPageEl.addEventListener("click", () => {
+        if (page > 0) {
+          page -= 1;
+          renderRows();
+        }
+      });
+      nextPageEl.addEventListener("click", () => {
+        const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+        if (page < totalPages - 1) {
+          page += 1;
+          renderRows();
+        }
+      });
+
+      for (const th of document.querySelectorAll("th[data-sort]")) {
+        th.addEventListener("click", () => {
+          const key = th.dataset.sort;
+          const map = {
+            name: ["name_asc", "name_desc"],
+            city: ["name_asc", "name_desc"],
+            state: ["state_asc", "name_asc"],
+            discipline: ["name_asc", "name_desc"],
+          };
+          const options = map[key] || ["name_asc", "name_desc"];
+          sortEl.value = sortEl.value === options[0] ? options[1] : options[0];
+          applyFilters();
+        });
+      }
+
+      applyFilters();
+    }
+
+    init().catch((error) => {
+      metaEl.textContent = "Failed to load museum database: " + error.message;
+    });
+  </script>
+</body>
+</html>
