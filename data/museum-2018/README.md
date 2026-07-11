@@ -14,21 +14,14 @@ Merged, searchable export of the **2018 IMLS Museum Universe Data File** CSV rel
 
 ## Search UI
 
-Open **`museum-db-2018/index.html`** locally or on GitHub Pages.
-
-Features:
-
-- Full-text search across name, city, state, MID, phone, website, EIN
-- State and discipline filters
-- Sort by name, state, or 2015 revenue
-- Detail panel with full record fields
+Open **`web/index.html`** locally or on GitHub Pages.
 
 ## Rebuild
 
 After updating source CSVs:
 
 ```bash
-python3 _scripts/build_museum_2018_db.py
+python3 scripts/build_museum_2018_db.py
 ```
 
 ## Source notes
