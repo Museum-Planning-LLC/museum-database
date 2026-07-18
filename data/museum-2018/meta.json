@@ -1,7 +1,7 @@
 {
   "dataset": "IMLS Museum Universe Data File 2018",
   "year": 2018,
-  "built_at": "2026-07-10T23:56:48.236282+00:00",
+  "built_at": "2026-07-18T00:03:59.478027+00:00",
   "record_count": 30175,
   "source_files": {
     "MuseumFile2018_File1_Nulls.csv": 7431,
@@ -111,7 +111,7 @@
     "CHI": "Children's museum",
     "HAI": "Historic house"
   },
-  "search_ui": "museum-db-2018/index.html",
+  "search_ui": "web/index.html",
   "files": {
     "slim_json": "data/museum-2018/museums.json",
     "by_mid_json": "data/museum-2018/museums-by-mid.json",

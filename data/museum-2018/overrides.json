@@ -1,0 +1,5 @@
+{
+  "schema_version": "1.0",
+  "description": "Human corrections merged at build time. Keyed by MID — survives CSV rebuilds.",
+  "overrides": []
+}

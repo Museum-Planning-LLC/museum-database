@@ -13,6 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE_DIR = ROOT / "data" / "museum-2018" / "source"
 OUT_DIR = ROOT / "data" / "museum-2018"
+OVERRIDES_PATH = OUT_DIR / "overrides.json"
 
 DISCIPLINE_LABELS = {
     "ART": "Art museum",
@@ -54,6 +55,35 @@ def normalize_row(row: dict[str, str]) -> dict[str, str]:
         cleaned.pop("DISCIPL", None)
 
     return cleaned
+
+
+def load_overrides() -> list[dict]:
+    if not OVERRIDES_PATH.is_file():
+        return []
+    data = json.loads(OVERRIDES_PATH.read_text(encoding="utf-8"))
+    return data.get("overrides", [])
+
+
+def apply_overrides(records: list[dict[str, str]]) -> tuple[list[dict[str, str]], int]:
+    """Merge human corrections keyed by MID before export."""
+    by_mid = {record["MID"]: record for record in records if record.get("MID")}
+    applied = 0
+
+    for entry in load_overrides():
+        mid = entry.get("mid", "")
+        fields = entry.get("fields") or {}
+        if not mid or not fields:
+            continue
+        record = by_mid.get(mid)
+        if not record:
+            print(f"Warning: override for unknown MID {mid} — skipped")
+            continue
+        for key, value in fields.items():
+            record[key] = "" if value is None else str(value).strip()
+        applied += 1
+
+    merged = sorted(by_mid.values(), key=lambda item: item.get("COMMONNAME", "").lower())
+    return merged, applied
 
 
 def load_records() -> tuple[list[dict[str, str]], Counter]:
@@ -192,7 +222,7 @@ def write_sqlite(records: list[dict[str, str]]) -> None:
         conn.close()
 
 
-def write_meta(records: list[dict[str, str]], source_counts: Counter) -> None:
+def write_meta(records: list[dict[str, str]], source_counts: Counter, override_count: int) -> None:
     states = Counter(record.get("ADSTATE", "") for record in records if record.get("ADSTATE"))
     disciplines = Counter(
         record.get("DISCIPLINE", "") for record in records if record.get("DISCIPLINE")
@@ -213,6 +243,8 @@ def write_meta(records: list[dict[str, str]], source_counts: Counter) -> None:
             for code, count in disciplines.most_common()
         },
         "discipline_labels": DISCIPLINE_LABELS,
+        "overrides_applied": override_count,
+        "overrides_file": "data/museum-2018/overrides.json",
         "search_ui": "web/index.html",
         "files": {
             "slim_json": "data/museum-2018/museums.json",
@@ -226,10 +258,12 @@ def write_meta(records: list[dict[str, str]], source_counts: Counter) -> None:
 
 def main() -> None:
     records, source_counts = load_records()
+    records, override_count = apply_overrides(records)
     write_json(records)
     write_sqlite(records)
-    write_meta(records, source_counts)
-    print(f"Built {len(records)} museum records into {OUT_DIR}")
+    write_meta(records, source_counts, override_count)
+    suffix = f" ({override_count} override(s) applied)" if override_count else ""
+    print(f"Built {len(records)} museum records into {OUT_DIR}{suffix}")
 
 
 if __name__ == "__main__":

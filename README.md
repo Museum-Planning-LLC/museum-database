@@ -43,6 +43,18 @@ Place source CSVs in `data/museum-2018/source/`, then:
 python3 scripts/build_museum_2018_db.py
 ```
 
+Human corrections live in `data/museum-2018/overrides.json` and are merged at build time (survives CSV rebuilds).
+
+```bash
+# List / add corrections
+python3 scripts/manage_overrides.py list
+python3 scripts/manage_overrides.py add 8401234567 --field EIN --value "592048869" \
+  --source "Client verification · 2026-07-17"
+python3 scripts/build_museum_2018_db.py
+```
+
+See `overrides.json` for schema. Used by Digital-Twin resiliency studies before PDF export.
+
 ## Balanced-market screening (50/50 Black / White cities)
 
 Screen US cities where Black alone and White alone are each roughly **40–60%** of the combined Black+White population, then cross-reference museums already in that city.
