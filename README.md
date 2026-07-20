@@ -19,8 +19,6 @@ Open `web/index.html` locally, or enable GitHub Pages on this repo:
 
 **https://museum-planning-llc.github.io/museum-database/web/**
 
-**Interactive Digital (internal POC mirror):** [flow-field-grid-poc.html](https://museum-planning-llc.github.io/museum-database/web/interactive-digital/flow-field-grid-poc.html) — source in [interactive-digital/reference](https://github.com/Museum-Planning-LLC/interactive-digital/tree/main/reference)
-
 Features:
 
 - Search name, city, state, MID, phone, website, EIN
