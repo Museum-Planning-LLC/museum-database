@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Flow field grid · Interactive Digital POC</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #070b10; color: #c8d4e0; font-family: "SF Mono", Monaco, Consolas, ui-monospace, monospace; }
+    #canvas-host { position: fixed; inset: 0; }
+    #canvas-host canvas { display: block; width: 100%; height: 100%; }
+    #ui {
+      position: fixed; left: 0; top: 0; bottom: 0; width: min(280px, 92vw);
+      padding: 20px 18px 24px; background: rgba(7, 11, 16, 0.88);
+      border-right: 1px solid rgba(120, 160, 200, 0.15);
+      backdrop-filter: blur(8px); overflow-y: auto; z-index: 2;
+    }
+    #ui h1 { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: #5a8ab0; font-weight: 500; margin-bottom: 6px; }
+    #ui .title { font-size: 15px; font-weight: 400; line-height: 1.35; margin-bottom: 4px; color: #e8f0f8; }
+    #ui .sub { font-size: 10px; line-height: 1.6; color: rgba(200, 212, 224, 0.45); margin-bottom: 22px; max-width: 240px; }
+    .ctrl { margin-bottom: 16px; }
+    .ctrl label { display: block; font-size: 10px; letter-spacing: 0.06em; color: rgba(200, 212, 224, 0.65); margin-bottom: 6px; }
+    .ctrl input[type="range"] { width: 100%; accent-color: #00b4d8; }
+    .ctrl .val { font-size: 10px; color: #00b4d8; margin-top: 4px; }
+    #hint { position: fixed; right: 14px; bottom: 12px; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(200, 212, 224, 0.28); pointer-events: none; z-index: 1; }
+    .badge { display: inline-block; font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: #00b4d8; border: 1px solid rgba(0, 180, 216, 0.35); padding: 4px 8px; margin-bottom: 14px; }
+  </style>
+</head>
+<body>
+  <div id="ui">
+    <div class="badge">Internal POC · not public</div>
+    <h1>Interactive Digital</h1>
+    <p class="title">Flow field grid</p>
+    <p class="sub">Science template · parameter exploration · Three.js port of 2024 p5 sketch. Drag to orbit.</p>
+
+    <div class="ctrl">
+      <label for="viscosity">Viscosity (fluid thickness)</label>
+      <input id="viscosity" type="range" min="0.7" max="0.995" step="0.005" value="0.92" />
+      <div class="val" id="viscosity-val">0.920</div>
+    </div>
+    <div class="ctrl">
+      <label for="turbulence">Turbulence (chaotic motion)</label>
+      <input id="turbulence" type="range" min="0" max="0.5" step="0.01" value="0.05" />
+      <div class="val" id="turbulence-val">0.05</div>
+    </div>
+    <div class="ctrl">
+      <label for="flowX">Flow (X direction)</label>
+      <input id="flowX" type="range" min="-0.5" max="0.5" step="0.01" value="0.03" />
+      <div class="val" id="flowX-val">0.03</div>
+    </div>
+    <div class="ctrl">
+      <label for="speed">Speed (simulation rate)</label>
+      <input id="speed" type="range" min="0.001" max="0.2" step="0.001" value="0.01" />
+      <div class="val" id="speed-val">0.010</div>
+    </div>
+  </div>
+
+  <div id="canvas-host"></div>
+  <p id="hint">Museum Planning LLC · flow-field-grid · catalog #2</p>
+
+  <script src="js/three.min.js"></script>
+  <script src="js/OrbitControls.js"></script>
+  <script>
+(function () {
+  "use strict";
+
+  const COLS = 6, ROWS = 6, DEPTHS = 6, SPACING = 150;
+  const CUBE = SPACING * (COLS - 1);
+  const COUNT = COLS * ROWS * DEPTHS;
+
+  const ui = {
+    viscosity: document.getElementById("viscosity"),
+    turbulence: document.getElementById("turbulence"),
+    flowX: document.getElementById("flowX"),
+    speed: document.getElementById("speed"),
+    viscosityVal: document.getElementById("viscosity-val"),
+    turbulenceVal: document.getElementById("turbulence-val"),
+    flowXVal: document.getElementById("flowX-val"),
+    speedVal: document.getElementById("speed-val")
+  };
+
+  // Classic 3D gradient noise (Perlin-style) — replaces p5.noise
+  const _perm = new Uint8Array(512);
+  (function seedPerm() {
+    const p = new Uint8Array(256);
+    for (let i = 0; i < 256; i++) p[i] = i;
+    for (let i = 255; i > 0; i--) {
+      const j = (Math.random() * (i + 1)) | 0;
+      const t = p[i]; p[i] = p[j]; p[j] = t;
+    }
+    for (let i = 0; i < 512; i++) _perm[i] = p[i & 255];
+  })();
+
+  function fade(t) { return t * t * t * (t * (t * 6 - 15) + 10); }
+  function lerp(a, b, t) { return a + t * (b - a); }
+  function grad(h, x, y, z) {
+    const u = (h & 15) < 8 ? x : y;
+    const v = (h & 15) < 4 ? y : ((h & 15) === 12 || (h & 15) === 14 ? x : z);
+    return (((h & 1) === 0 ? u : -u) + ((h & 2) === 0 ? v : -v));
+  }
+  function noise3(x, y, z) {
+    const X = Math.floor(x) & 255, Y = Math.floor(y) & 255, Z = Math.floor(z) & 255;
+    x -= Math.floor(x); y -= Math.floor(y); z -= Math.floor(z);
+    const u = fade(x), v = fade(y), w = fade(z);
+    const p = _perm;
+    const A = p[X] + Y, B = p[X + 1] + Y;
+    return lerp(
+      lerp(lerp(grad(p[p[A] + Z], x, y, z), grad(p[p[B] + Z], x - 1, y, z), u),
+           lerp(grad(p[p[A + 1] + Z], x, y - 1, z), grad(p[p[B + 1] + Z], x - 1, y - 1, z), u), v),
+      lerp(lerp(grad(p[p[A] + Z + 1], x, y, z - 1), grad(p[p[B] + Z + 1], x - 1, y, z - 1), u),
+           lerp(grad(p[p[A + 1] + Z + 1], x, y - 1, z - 1), grad(p[p[B + 1] + Z + 1], x - 1, y - 1, z - 1), u), v),
+      w);
+  }
+  function mapNoise(n) { return (n + 1) * 0.5; }
+
+  const points = [];
+  for (let z = 0; z < DEPTHS; z++) {
+    for (let y = 0; y < ROWS; y++) {
+      for (let x = 0; x < COLS; x++) {
+        const bx = -CUBE / 2 + x * SPACING;
+        const by = -CUBE / 2 + y * SPACING;
+        const bz = -CUBE / 2 + z * SPACING;
+        points.push({
+          base: new THREE.Vector3(bx, by, bz),
+          pos: new THREE.Vector3(bx, by, bz),
+          vel: new THREE.Vector3(0, 0, 0),
+          prev: new THREE.Vector3(bx, by, bz)
+        });
+      }
+    }
+  }
+
+  const host = document.getElementById("canvas-host");
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setClearColor(0x070b10, 1);
+  host.appendChild(renderer.domElement);
+
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x070b10, 0.0018);
+
+  const camera = new THREE.PerspectiveCamera(45, 1, 1, 5000);
+  camera.position.set(CUBE * 0.9, CUBE * 0.55, CUBE * 1.1);
+
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.target.set(0, 0, 0);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.08;
+
+  scene.add(new THREE.AmbientLight(0x507090, 0.55));
+  const dir = new THREE.DirectionalLight(0xffffff, 0.85);
+  dir.position.set(0.5, 0.8, -1);
+  scene.add(dir);
+
+  const sphereGeo = new THREE.SphereBufferGeometry(5, 10, 10);
+  const sphereMat = new THREE.MeshLambertMaterial({ color: 0x0096ff });
+  const spheres = new THREE.InstancedMesh(sphereGeo, sphereMat, COUNT);
+  scene.add(spheres);
+  const dummy = new THREE.Object3D();
+
+  const trailPos = new Float32Array(COUNT * 2 * 3);
+  const trailGeo = new THREE.BufferGeometry();
+  trailGeo.setAttribute("position", new THREE.BufferAttribute(trailPos, 3));
+  const trailMat = new THREE.LineBasicMaterial({ color: 0x0064ff, transparent: true, opacity: 0.35 });
+  scene.add(new THREE.LineSegments(trailGeo, trailMat));
+
+  const velPos = new Float32Array(COUNT * 2 * 3);
+  const velGeo = new THREE.BufferGeometry();
+  velGeo.setAttribute("position", new THREE.BufferAttribute(velPos, 3));
+  const velMat = new THREE.LineBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.65 });
+  scene.add(new THREE.LineSegments(velGeo, velMat));
+
+  const flowBias = new THREE.Vector3(0.03, 0.01, 0);
+  const _inf = new THREE.Vector3();
+  const _delta = new THREE.Vector3();
+  const _turb = new THREE.Vector3();
+  let frame = 0;
+
+  function readUI() {
+    ui.viscosityVal.textContent = Number(ui.viscosity.value).toFixed(3);
+    ui.turbulenceVal.textContent = Number(ui.turbulence.value).toFixed(2);
+    ui.flowXVal.textContent = Number(ui.flowX.value).toFixed(2);
+    ui.speedVal.textContent = Number(ui.speed.value).toFixed(3);
+  }
+  ["input", "change"].forEach(function (ev) {
+    [ui.viscosity, ui.turbulence, ui.flowX, ui.speed].forEach(function (el) {
+      el.addEventListener(ev, readUI);
+    });
+  });
+  readUI();
+
+  function simulate() {
+    const viscosity = parseFloat(ui.viscosity.value);
+    const turbulenceStrength = parseFloat(ui.turbulence.value);
+    flowBias.x = parseFloat(ui.flowX.value);
+    const timeSpeed = parseFloat(ui.speed.value);
+    const t = frame * timeSpeed;
+
+    for (let i = 0; i < points.length; i++) {
+      const pt = points[i];
+      pt.prev.copy(pt.pos);
+
+      _turb.set(
+        mapNoise(noise3(pt.base.y * 0.01, pt.base.z * 0.01, t)) * 2 - 1,
+        mapNoise(noise3(pt.base.z * 0.01, pt.base.x * 0.01, t + 100)) * 2 - 1,
+        mapNoise(noise3(pt.base.x * 0.01, pt.base.y * 0.01, t + 200)) * 2 - 1
+      ).multiplyScalar(turbulenceStrength);
+
+      _inf.set(0, 0, 0);
+      for (let j = 0; j < points.length; j++) {
+        const nb = points[j];
+        const d = pt.base.distanceTo(nb.base);
+        if (d > 0 && d < SPACING) {
+          _delta.subVectors(nb.pos, pt.pos);
+          _delta.multiplyScalar(0.001 / d);
+          _inf.add(_delta);
+        }
+      }
+
+      pt.vel.add(_turb).add(flowBias).add(_inf).multiplyScalar(viscosity);
+      pt.pos.add(pt.vel);
+
+      const half = SPACING / 2 - 10;
+      pt.pos.x = THREE.MathUtils.clamp(pt.pos.x, pt.base.x - half, pt.base.x + half);
+      pt.pos.y = THREE.MathUtils.clamp(pt.pos.y, pt.base.y - half, pt.base.y + half);
+      pt.pos.z = THREE.MathUtils.clamp(pt.pos.z, pt.base.z - half, pt.base.z + half);
+    }
+    frame++;
+  }
+
+  function updateMeshes() {
+    for (let i = 0; i < COUNT; i++) {
+      const pt = points[i];
+      dummy.position.copy(pt.pos);
+      dummy.updateMatrix();
+      spheres.setMatrixAt(i, dummy.matrix);
+
+      const ti = i * 6;
+      trailPos[ti] = pt.prev.x; trailPos[ti + 1] = pt.prev.y; trailPos[ti + 2] = pt.prev.z;
+      trailPos[ti + 3] = pt.pos.x; trailPos[ti + 4] = pt.pos.y; trailPos[ti + 5] = pt.pos.z;
+
+      const vi = i * 6;
+      velPos[vi] = pt.pos.x; velPos[vi + 1] = pt.pos.y; velPos[vi + 2] = pt.pos.z;
+      velPos[vi + 3] = pt.pos.x + pt.vel.x * 20;
+      velPos[vi + 4] = pt.pos.y + pt.vel.y * 20;
+      velPos[vi + 5] = pt.pos.z + pt.vel.z * 20;
+    }
+    spheres.instanceMatrix.needsUpdate = true;
+    trailGeo.attributes.position.needsUpdate = true;
+    velGeo.attributes.position.needsUpdate = true;
+  }
+
+  function resize() {
+    const w = host.clientWidth;
+    const h = host.clientHeight;
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderer.setSize(w, h, false);
+  }
+
+  window.addEventListener("resize", resize);
+  resize();
+
+  function tick() {
+    requestAnimationFrame(tick);
+    simulate();
+    updateMeshes();
+    controls.update();
+    renderer.render(scene, camera);
+  }
+  tick();
+})();
+  </script>
+</body>
+</html>
